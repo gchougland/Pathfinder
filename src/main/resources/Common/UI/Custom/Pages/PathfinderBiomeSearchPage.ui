@@ -1,0 +1,51 @@
+$C = "../Common.ui";
+
+$C.@PageOverlay {}
+
+$C.@DecoratedContainer {
+  Anchor: (Width: 600, Height: 500);
+
+  #Title {
+    Group {
+      $C.@Title {
+        @Text = %server.customUI.pathfinderBiomeSearchPage.title;
+      }
+
+      $C.@HeaderSearch {}
+    }
+  }
+
+  #Content {
+    Group {
+      LayoutMode: Top;
+      FlexWeight: 1;
+      Padding: (Full: 15);
+
+      Group #BiomeList {
+        FlexWeight: 1;
+        LayoutMode: TopScrolling;
+        ScrollbarStyle: $C.@DefaultScrollbarStyle;
+      }
+
+      Group {
+        LayoutMode: Left;
+        Padding: (Top: 15, Left: 0, Right: 0, Bottom: 0);
+
+        $C.@CancelTextButton #CancelButton {
+          @Text = %server.customUI.pathfinderBiomeSearchPage.cancel;
+        }
+
+        Group {
+          Anchor: (Width: 10);
+        }
+
+        $C.@TextButton #SearchButton {
+          @Text = %server.customUI.pathfinderBiomeSearchPage.search;
+          FlexWeight: 1;
+        }
+      }
+    }
+  }
+}
+
+$C.@BackButton {}

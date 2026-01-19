@@ -5,6 +5,8 @@ import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.hypixel.hytale.server.core.universe.Universe;
 import com.hypixel.hytale.server.core.universe.world.events.AddWorldEvent;
+import com.hexvane.pathfinder.gui.PathfinderPageSupplier;
+import com.hypixel.hytale.server.core.modules.interaction.interaction.config.server.OpenCustomUIInteraction;
 
 public class PathfinderPlugin extends JavaPlugin {
     private static final HytaleLogger LOGGER = HytaleLogger.forEnclosingClass();
@@ -17,6 +19,14 @@ public class PathfinderPlugin extends JavaPlugin {
     @Override
     protected void setup() {
         this.getCommandRegistry().registerCommand(new PathfinderCommand());
+        
+        // Register the custom UI page supplier
+        OpenCustomUIInteraction.PAGE_CODEC.register(
+                "PathfinderBiomeSearch",
+                PathfinderPageSupplier.class,
+                PathfinderPageSupplier.CODEC
+        );
+        LOGGER.atInfo().log("Registered Pathfinder custom UI page supplier");
         
         // Register event listener for when worlds are added
         this.getEventRegistry().registerGlobal(

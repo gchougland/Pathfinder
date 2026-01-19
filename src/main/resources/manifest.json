@@ -1,6 +1,6 @@
 {
-  "Group": "${plugin_group}",
-  "Name": "${plugin_name}",
+  "Group": "Hexvane",
+  "Name": "Pathfinder",
   "Version": "${plugin_version}",
   "Description": "${plugin_description}",
   "Authors": [

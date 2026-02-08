@@ -1,12 +1,11 @@
 package com.hexvane.pathfinder;
 
 import com.hypixel.hytale.protocol.packets.worldmap.MapMarker;
-import com.hypixel.hytale.server.core.asset.type.gameplay.GameplayConfig;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.data.PlayerWorldData;
 import com.hypixel.hytale.server.core.universe.world.World;
-import com.hypixel.hytale.server.core.universe.world.WorldMapTracker;
 import com.hypixel.hytale.server.core.universe.world.worldmap.WorldMapManager;
+import com.hypixel.hytale.server.core.universe.world.worldmap.markers.MapMarkerTracker;
 import javax.annotation.Nonnull;
 
 public class PathfinderMarkerProvider implements WorldMapManager.MarkerProvider {
@@ -18,8 +17,7 @@ public class PathfinderMarkerProvider implements WorldMapManager.MarkerProvider 
     @Override
     public void update(
             @Nonnull World world,
-            @Nonnull GameplayConfig gameplayConfig,
-            @Nonnull WorldMapTracker tracker,
+            @Nonnull MapMarkerTracker tracker,
             int chunkViewRadius,
             int playerChunkX,
             int playerChunkZ

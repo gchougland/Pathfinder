@@ -39,6 +39,14 @@ $C.@DecoratedContainer {
           Anchor: (Width: 10);
         }
 
+        $C.@TextButton #ClearAllButton {
+          @Text = %server.customUI.pathfinderBiomeSearchPage.clearAll;
+        }
+
+        Group {
+          Anchor: (Width: 10);
+        }
+
         $C.@TextButton #SearchButton {
           @Text = %server.customUI.pathfinderBiomeSearchPage.search;
           FlexWeight: 1;

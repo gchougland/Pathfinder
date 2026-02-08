@@ -7,7 +7,10 @@ import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.protocol.packets.interface_.CustomPageLifetime;
 import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
+import com.hypixel.hytale.protocol.packets.worldmap.MapMarker;
+import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.entity.entities.player.data.PlayerWorldData;
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
@@ -43,7 +46,15 @@ public class PathfinderBiomeSearchPage extends InteractiveCustomUIPage<Pathfinde
             if (biomes != null) {
                 this.allBiomes = biomes;
                 this.biomesLoaded = true;
-                this.rebuild();
+                // Use sendUpdate to rebuild the UI (rebuild() is deprecated)
+                Ref<EntityStore> ref = this.playerRef.getReference();
+                if (ref != null) {
+                    Store<EntityStore> store = ref.getStore();
+                    UICommandBuilder commandBuilder = new UICommandBuilder();
+                    UIEventBuilder eventBuilder = new UIEventBuilder();
+                    this.build(ref, commandBuilder, eventBuilder, store);
+                    this.sendUpdate(commandBuilder, eventBuilder, true);
+                }
             }
         }, this.world);
     }
@@ -138,6 +149,14 @@ public class PathfinderBiomeSearchPage extends InteractiveCustomUIPage<Pathfinde
                 EventData.of("Action", "Cancel"),
                 false
         );
+        
+        // Clear All button click
+        eventBuilder.addEventBinding(
+                CustomUIEventBindingType.Activating,
+                "#ClearAllButton",
+                EventData.of("Action", "ClearAll"),
+                false
+        );
     }
 
     @Override
@@ -152,6 +171,9 @@ public class PathfinderBiomeSearchPage extends InteractiveCustomUIPage<Pathfinde
                     break;
                 case "Cancel":
                     this.close();
+                    break;
+                case "ClearAll":
+                    this.clearAllMarkers(ref, store);
                     break;
             }
         } else if (data.biome != null) {
@@ -300,6 +322,39 @@ public class PathfinderBiomeSearchPage extends InteractiveCustomUIPage<Pathfinde
                 playerComponent::sendMessage
         );
     }
+    
+    private void clearAllMarkers(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
+        Player playerComponent = store.getComponent(ref, Player.getComponentType());
+        if (playerComponent == null) return;
+        
+        PlayerWorldData perWorldData = playerComponent.getPlayerConfigData().getPerWorldData(this.world.getName());
+        MapMarker[] existingMarkers = perWorldData.getWorldMapMarkers();
+        
+        if (existingMarkers == null || existingMarkers.length == 0) {
+            playerComponent.sendMessage(Message.raw("No markers to clear."));
+            return;
+        }
+        
+        // Filter out all pathfinder markers, keep others
+        List<MapMarker> filtered = new ArrayList<>();
+        int clearedCount = 0;
+        for (MapMarker marker : existingMarkers) {
+            if (isPathfinderMarker(marker)) {
+                clearedCount++;
+            } else {
+                filtered.add(marker);
+            }
+        }
+        
+        MapMarker[] newMarkers = filtered.toArray(new MapMarker[0]);
+        perWorldData.setWorldMapMarkers(newMarkers.length > 0 ? newMarkers : null);
+        
+        playerComponent.sendMessage(Message.raw("Cleared " + clearedCount + " marker(s)."));
+    }
+    
+    private boolean isPathfinderMarker(@Nonnull MapMarker marker) {
+        return marker.id != null && marker.id.startsWith("pathfinder_");
+    }
 
     public static class PathfinderEventData {
         static final String KEY_ACTION = "Action";
@@ -309,9 +364,12 @@ public class PathfinderBiomeSearchPage extends InteractiveCustomUIPage<Pathfinde
         public static final BuilderCodec<PathfinderEventData> CODEC = BuilderCodec.builder(
                 PathfinderEventData.class, PathfinderEventData::new
         )
-        .addField(new KeyedCodec<>("Action", Codec.STRING), (data, s) -> data.action = s, data -> data.action)
-        .addField(new KeyedCodec<>("Biome", Codec.STRING), (data, s) -> data.biome = s, data -> data.biome)
-        .addField(new KeyedCodec<>("@SearchQuery", Codec.STRING), (data, s) -> data.searchQuery = s, data -> data.searchQuery)
+        .append(new KeyedCodec<>("Action", Codec.STRING), (data, s) -> data.action = s, data -> data.action)
+        .add()
+        .append(new KeyedCodec<>("Biome", Codec.STRING), (data, s) -> data.biome = s, data -> data.biome)
+        .add()
+        .append(new KeyedCodec<>("@SearchQuery", Codec.STRING), (data, s) -> data.searchQuery = s, data -> data.searchQuery)
+        .add()
         .build();
         
         private String action;

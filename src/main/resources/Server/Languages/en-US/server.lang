@@ -3,3 +3,4 @@ items.Pathfinder_Biome_Map.name=Pathfinder Biome Map
 customUI.pathfinderBiomeSearchPage.title=Biome Search
 customUI.pathfinderBiomeSearchPage.search=Search
 customUI.pathfinderBiomeSearchPage.cancel=Cancel
+customUI.pathfinderBiomeSearchPage.clearAll=Clear All

@@ -1,17 +1,12 @@
 package com.hexvane.pathfinder;
 
-import com.hypixel.hytale.common.util.ArrayUtil;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.protocol.Direction;
-import com.hypixel.hytale.protocol.Position;
-import com.hypixel.hytale.protocol.Transform;
 import com.hypixel.hytale.protocol.packets.worldmap.MapMarker;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.entity.entities.player.data.PlayerWorldData;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
@@ -81,22 +76,14 @@ public class PathfinderSearchService {
                     return;
                 }
 
-                PlayerWorldData perWorldData = playerComponent.getPlayerConfigData().getPerWorldData(world.getName());
                 String markerId = "pathfinder_" + biomeName + "_" + System.currentTimeMillis();
-                MapMarker marker = new MapMarker(
+                MapMarker marker = PathfinderMarkerFactory.create(
                         markerId,
                         biomeName,
                         "Coordinate.png",
-                        new Transform(
-                                new Position(targetX, 128.0, targetZ),
-                                new Direction(0.0F, 0.0F, 0.0F)
-                        ),
-                        null
+                        targetX, 128.0, targetZ
                 );
-
-                MapMarker[] existingMarkers = perWorldData.getWorldMapMarkers();
-                MapMarker[] newMarkers = ArrayUtil.append(existingMarkers, marker);
-                perWorldData.setWorldMapMarkers(newMarkers);
+                PathfinderMarkerStorage.addMarker(world.getName(), playerComponent, marker);
 
                 // Send confirmation
                 messageCallback.accept(MESSAGE_BIOME_FOUND);

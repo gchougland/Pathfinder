@@ -1,12 +1,8 @@
 package com.hexvane.pathfinder;
 
-import com.hypixel.hytale.common.util.ArrayUtil;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.math.vector.Vector3d;
-import com.hypixel.hytale.protocol.Direction;
-import com.hypixel.hytale.protocol.Position;
-import com.hypixel.hytale.protocol.Transform;
 import com.hypixel.hytale.protocol.packets.worldmap.MapMarker;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
@@ -17,7 +13,6 @@ import com.hypixel.hytale.server.worldgen.biome.Biome;
 import com.hypixel.hytale.server.worldgen.chunk.ChunkGenerator;
 import com.hypixel.hytale.server.worldgen.chunk.ZoneBiomeResult;
 import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.entity.entities.player.data.PlayerWorldData;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
@@ -151,26 +146,16 @@ public class PathfinderCommand extends AbstractPlayerCommand {
                 return;
             }
             
-            PlayerWorldData perWorldData = playerComponent.getPlayerConfigData().getPerWorldData(world.getName());
-            
             String markerId = "pathfinder_" + biomeName + "_" + System.currentTimeMillis();
-            MapMarker marker = new MapMarker(
+            MapMarker marker = PathfinderMarkerFactory.create(
                     markerId,
                     biomeName,
-                    "Coordinate.png", // markerImage - using standard marker icon
-                    new Transform(
-                            new Position(targetX, 128.0, targetZ),
-                            new Direction(0.0F, 0.0F, 0.0F) // orientation (yaw, pitch, roll) - 0 for no rotation
-                    ),
-                    null // contextMenuItems
+                    "Coordinate.png",
+                    targetX, 128.0, targetZ
             );
-            
-            MapMarker[] existingMarkers = perWorldData.getWorldMapMarkers();
-            MapMarker[] newMarkers = ArrayUtil.append(existingMarkers, marker);
-            perWorldData.setWorldMapMarkers(newMarkers);
-            
-            // Verify marker was added
-            MapMarker[] verifyMarkers = perWorldData.getWorldMapMarkers();
+            PathfinderMarkerStorage.addMarker(world.getName(), playerComponent, marker);
+
+            MapMarker[] verifyMarkers = PathfinderMarkerStorage.getMarkers(world.getName(), playerComponent);
             boolean markerFound = false;
             if (verifyMarkers != null) {
                 for (MapMarker m : verifyMarkers) {
@@ -182,9 +167,9 @@ public class PathfinderCommand extends AbstractPlayerCommand {
             }
             
             // Log for debugging
-            callbackLogger.atInfo().log("Created marker: id=%s, name=%s, position=(%d, %d), distance=%.1f, stored=%s, totalMarkers=%d", 
-                    markerId, biomeName, targetX, targetZ, distance, markerFound, 
-                    verifyMarkers != null ? verifyMarkers.length : 0);
+            callbackLogger.atInfo().log("Created marker: id=%s, name=%s, position=(%d, %d), distance=%.1f, stored=%s, totalMarkers=%d",
+                    markerId, biomeName, targetX, targetZ, distance, markerFound,
+                    verifyMarkers.length);
             
             // Log marker details
             if (marker.transform != null && marker.transform.position != null) {
@@ -199,7 +184,7 @@ public class PathfinderCommand extends AbstractPlayerCommand {
             context.sendMessage(Message.raw("Marker placed at coordinates: (" + targetX + ", " + targetZ + ")"));
             context.sendMessage(Message.raw("Distance: " + String.format("%.1f", distance) + " blocks away"));
             context.sendMessage(Message.raw("Marker ID: " + markerId));
-            context.sendMessage(Message.raw("Total markers stored: " + (verifyMarkers != null ? verifyMarkers.length : 0)));
+            context.sendMessage(Message.raw("Total markers stored: " + verifyMarkers.length));
             
             // Try to get world map tracker and verify it can see the marker
             try {
@@ -244,11 +229,10 @@ public class PathfinderCommand extends AbstractPlayerCommand {
             context.sendMessage(Message.raw("Unable to get player component."));
             return;
         }
-        
-        PlayerWorldData perWorldData = playerComponent.getPlayerConfigData().getPerWorldData(world.getName());
-        MapMarker[] existingMarkers = perWorldData.getWorldMapMarkers();
-        
-        if (existingMarkers == null || existingMarkers.length == 0) {
+
+        MapMarker[] existingMarkers = PathfinderMarkerStorage.getMarkers(world.getName(), playerComponent);
+
+        if (existingMarkers.length == 0) {
             context.sendMessage(MESSAGE_NO_MARKERS);
             return;
         }
@@ -281,7 +265,7 @@ public class PathfinderCommand extends AbstractPlayerCommand {
         }
         
         MapMarker[] newMarkers = filtered.toArray(new MapMarker[0]);
-        perWorldData.setWorldMapMarkers(newMarkers.length > 0 ? newMarkers : null);
+        PathfinderMarkerStorage.setMarkers(world.getName(), playerComponent, newMarkers.length > 0 ? newMarkers : null);
         context.sendMessage(MESSAGE_MARKER_CLEARED);
     }
     

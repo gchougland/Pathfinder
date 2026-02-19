@@ -10,7 +10,6 @@ import com.hypixel.hytale.protocol.packets.interface_.CustomUIEventBindingType;
 import com.hypixel.hytale.protocol.packets.worldmap.MapMarker;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.entity.entities.player.data.PlayerWorldData;
 import com.hypixel.hytale.server.core.entity.entities.player.pages.InteractiveCustomUIPage;
 import com.hypixel.hytale.server.core.ui.builder.EventData;
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
@@ -18,6 +17,7 @@ import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hexvane.pathfinder.PathfinderMarkerStorage;
 import com.hexvane.pathfinder.PathfinderSearchService;
 import com.hexvane.pathfinder.PathfinderSearchUtil;
 import java.util.ArrayList;
@@ -326,16 +326,15 @@ public class PathfinderBiomeSearchPage extends InteractiveCustomUIPage<Pathfinde
     private void clearAllMarkers(@Nonnull Ref<EntityStore> ref, @Nonnull Store<EntityStore> store) {
         Player playerComponent = store.getComponent(ref, Player.getComponentType());
         if (playerComponent == null) return;
-        
-        PlayerWorldData perWorldData = playerComponent.getPlayerConfigData().getPerWorldData(this.world.getName());
-        MapMarker[] existingMarkers = perWorldData.getWorldMapMarkers();
-        
-        if (existingMarkers == null || existingMarkers.length == 0) {
+
+        MapMarker[] existingMarkers = PathfinderMarkerStorage.getMarkers(this.world.getName(), playerComponent);
+
+        if (existingMarkers.length == 0) {
             playerComponent.sendMessage(Message.raw("No markers to clear."));
             return;
         }
-        
-        // Filter out all pathfinder markers, keep others
+
+        // Filter out all pathfinder markers
         List<MapMarker> filtered = new ArrayList<>();
         int clearedCount = 0;
         for (MapMarker marker : existingMarkers) {
@@ -345,10 +344,10 @@ public class PathfinderBiomeSearchPage extends InteractiveCustomUIPage<Pathfinde
                 filtered.add(marker);
             }
         }
-        
+
         MapMarker[] newMarkers = filtered.toArray(new MapMarker[0]);
-        perWorldData.setWorldMapMarkers(newMarkers.length > 0 ? newMarkers : null);
-        
+        PathfinderMarkerStorage.setMarkers(this.world.getName(), playerComponent, newMarkers.length > 0 ? newMarkers : null);
+
         playerComponent.sendMessage(Message.raw("Cleared " + clearedCount + " marker(s)."));
     }
     

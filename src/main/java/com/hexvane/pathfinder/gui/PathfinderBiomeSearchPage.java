@@ -17,6 +17,7 @@ import com.hypixel.hytale.server.core.ui.builder.UIEventBuilder;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hexvane.pathfinder.PathfinderMarkerFactory;
 import com.hexvane.pathfinder.PathfinderMarkerStorage;
 import com.hexvane.pathfinder.PathfinderSearchService;
 import com.hexvane.pathfinder.PathfinderSearchUtil;
@@ -46,15 +47,7 @@ public class PathfinderBiomeSearchPage extends InteractiveCustomUIPage<Pathfinde
             if (biomes != null) {
                 this.allBiomes = biomes;
                 this.biomesLoaded = true;
-                // Use sendUpdate to rebuild the UI (rebuild() is deprecated)
-                Ref<EntityStore> ref = this.playerRef.getReference();
-                if (ref != null) {
-                    Store<EntityStore> store = ref.getStore();
-                    UICommandBuilder commandBuilder = new UICommandBuilder();
-                    UIEventBuilder eventBuilder = new UIEventBuilder();
-                    this.build(ref, commandBuilder, eventBuilder, store);
-                    this.sendUpdate(commandBuilder, eventBuilder, true);
-                }
+                this.rebuild();
             }
         }, this.world);
     }
@@ -306,20 +299,16 @@ public class PathfinderBiomeSearchPage extends InteractiveCustomUIPage<Pathfinde
     private void performSearch(@Nonnull String biomeName) {
         Ref<EntityStore> ref = this.playerRef.getReference();
         if (ref == null) return;
-        
+
         Store<EntityStore> store = ref.getStore();
-        Player playerComponent = store.getComponent(ref, Player.getComponentType());
-        if (playerComponent == null) return;
-        
         this.close();
-        
-        // Use the shared search service
+
         PathfinderSearchService.searchForBiome(
                 store,
                 ref,
                 this.world,
                 biomeName,
-                playerComponent::sendMessage
+                this.playerRef::sendMessage
         );
     }
     
@@ -330,15 +319,14 @@ public class PathfinderBiomeSearchPage extends InteractiveCustomUIPage<Pathfinde
         MapMarker[] existingMarkers = PathfinderMarkerStorage.getMarkers(this.world.getName(), playerComponent);
 
         if (existingMarkers.length == 0) {
-            playerComponent.sendMessage(Message.raw("No markers to clear."));
+            this.playerRef.sendMessage(Message.translation("server.pathfinder.noMarkersToClear"));
             return;
         }
 
-        // Filter out all pathfinder markers
         List<MapMarker> filtered = new ArrayList<>();
         int clearedCount = 0;
         for (MapMarker marker : existingMarkers) {
-            if (isPathfinderMarker(marker)) {
+            if (PathfinderMarkerFactory.isPathfinderMarker(marker)) {
                 clearedCount++;
             } else {
                 filtered.add(marker);
@@ -348,11 +336,7 @@ public class PathfinderBiomeSearchPage extends InteractiveCustomUIPage<Pathfinde
         MapMarker[] newMarkers = filtered.toArray(new MapMarker[0]);
         PathfinderMarkerStorage.setMarkers(this.world.getName(), playerComponent, newMarkers.length > 0 ? newMarkers : null);
 
-        playerComponent.sendMessage(Message.raw("Cleared " + clearedCount + " marker(s)."));
-    }
-    
-    private boolean isPathfinderMarker(@Nonnull MapMarker marker) {
-        return marker.id != null && marker.id.startsWith("pathfinder_");
+        this.playerRef.sendMessage(Message.translation("server.pathfinder.clearedCount").param("count", clearedCount));
     }
 
     public static class PathfinderEventData {

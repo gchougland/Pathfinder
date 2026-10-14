@@ -18,8 +18,7 @@ public class PathfinderMarkerProvider implements WorldMapManager.MarkerProvider 
         // Use Player as key - same instance is used when adding markers from command/GUI
         MapMarker[] markers = PathfinderMarkerStorage.getMarkers(world.getName(), player);
         for (MapMarker marker : markers) {
-            if (marker.id != null && marker.id.startsWith("pathfinder_")) {
-                // Use addIgnoreViewDistance so far-away biome markers still show on the map/compass
+            if (PathfinderMarkerFactory.isPathfinderMarker(marker)) {
                 collector.addIgnoreViewDistance(marker);
             }
         }

@@ -26,8 +26,6 @@
   "Icon": "Icons/ItemsGenerated/Deco_Map.png",
   "Quality": "Common",
   "PlayerAnimationsId": "Item",
-  "Model": "Blocks/Miscellaneous/Map.blockymodel",
-  "Texture": "Blocks/Miscellaneous/Map_Texture.png",
   "BlockType": {
     "Material": "Solid",
     "DrawType": "Model",
@@ -48,6 +46,7 @@
         "IsWeaponBreakable": false
       }
     },
+    "TextureComputedColor": "#D4CB9C",
     "BlockParticleSetId": "Stone",
     "Support": {
       "Down": [
@@ -67,6 +66,9 @@
     "Type": [
       "Tool"
     ]
+  },
+  "CarryHudInputBindings": {
+    "Secondary": "server.items.Pathfinder_Biome_Map.hud.secondary"
   },
   "Interactions": {
     "Secondary": "Pathfinder_Biome_Map"

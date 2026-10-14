@@ -1,16 +1,27 @@
 package com.hexvane.pathfinder;
 
-import com.hypixel.hytale.protocol.Direction;
-import com.hypixel.hytale.protocol.Position;
-import com.hypixel.hytale.protocol.Transform;
+import com.hypixel.hytale.math.vector.Transform;
 import com.hypixel.hytale.protocol.packets.worldmap.MapMarker;
-import com.hypixel.hytale.server.core.Message;
+import com.hypixel.hytale.server.core.universe.world.worldmap.markers.MapMarkerBuilder;
 import javax.annotation.Nonnull;
 
-/** Builds MapMarker instances for the current Hytale API. */
+/** Builds MapMarker instances with the Update 6 MapMarkerBuilder API. */
 public final class PathfinderMarkerFactory {
+    public static final String ID_PREFIX = "pathfinder_";
+    public static final String DEFAULT_ICON = "Coordinate.png";
+    public static final double DEFAULT_MARKER_Y = 128.0;
 
     private PathfinderMarkerFactory() {
+    }
+
+    @Nonnull
+    public static String markerId(@Nonnull String biomeName) {
+        return ID_PREFIX + biomeName + "_" + System.currentTimeMillis();
+    }
+
+    @Nonnull
+    public static MapMarker createForBiome(@Nonnull String biomeName, double x, double z) {
+        return create(markerId(biomeName), biomeName, DEFAULT_ICON, x, DEFAULT_MARKER_Y, z);
     }
 
     @Nonnull
@@ -20,15 +31,24 @@ public final class PathfinderMarkerFactory {
             @Nonnull String iconPath,
             double x, double y, double z
     ) {
-        Transform transform = new Transform(
-                new Position(x, y, z),
-                new Direction(0.0F, 0.0F, 0.0F)
-        );
-        MapMarker marker = new MapMarker();
-        marker.id = id;
-        marker.name = Message.raw(name).getFormattedMessage();
-        marker.markerImage = iconPath;
-        marker.transform = transform;
-        return marker;
+        return new MapMarkerBuilder(id, iconPath, new Transform(x, y, z, 0f, 0f, 0f))
+                .withCustomName(name)
+                .build();
+    }
+
+    public static boolean isPathfinderMarker(@Nonnull MapMarker marker) {
+        return marker.id != null && marker.id.startsWith(ID_PREFIX);
+    }
+
+    public static boolean matchesBiome(@Nonnull MapMarker marker, @Nonnull String biomeName) {
+        if (!isPathfinderMarker(marker)) {
+            return false;
+        }
+        String rest = marker.id.substring(ID_PREFIX.length());
+        int lastUnderscore = rest.lastIndexOf('_');
+        if (lastUnderscore <= 0) {
+            return false;
+        }
+        return rest.substring(0, lastUnderscore).equalsIgnoreCase(biomeName);
     }
 }

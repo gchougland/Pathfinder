@@ -1,6 +1,5 @@
 package com.hexvane.pathfinder.gui;
 
-import com.hypixel.hytale.codec.builder.BuilderCodec;
 import com.hypixel.hytale.component.ComponentAccessor;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.server.core.entity.InteractionContext;
@@ -14,10 +13,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class PathfinderPageSupplier implements OpenCustomUIInteraction.CustomPageSupplier {
-    public static final BuilderCodec<PathfinderPageSupplier> CODEC = BuilderCodec.builder(
-            PathfinderPageSupplier.class, PathfinderPageSupplier::new
-    ).build();
-
     @Override
     @Nullable
     public CustomUIPage tryCreate(

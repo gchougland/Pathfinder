@@ -1,6 +1,36 @@
 items.Pathfinder_Biome_Map.name=Pathfinder Biome Map
+items.Pathfinder_Biome_Map.hud.secondary=Open biome search
 
 customUI.pathfinderBiomeSearchPage.title=Biome Search
 customUI.pathfinderBiomeSearchPage.search=Search
 customUI.pathfinderBiomeSearchPage.cancel=Cancel
 customUI.pathfinderBiomeSearchPage.clearAll=Clear All
+
+commands.pathfinder.desc=Search for biomes and place markers on the map compass
+commands.pathfinder.search.desc=Search for a biome and place a map marker
+commands.pathfinder.search.biome.desc=Biome name to search for
+commands.pathfinder.search.radius.desc=Maximum search radius in blocks
+commands.pathfinder.clear.desc=Clear Pathfinder map markers
+commands.pathfinder.clear.biome.desc=Biome name of the marker to clear
+commands.pathfinder.list.desc=List biomes available in this world
+
+pathfinder.noPosition=Unable to get player position.
+pathfinder.noGenerator=This world's generator does not support biome search.
+pathfinder.noPlayer=Unable to get player component.
+pathfinder.currentBiome=You are currently in biome: {biome}
+pathfinder.searching=Searching for biome: {biome}
+pathfinder.notFoundInWorld=Biome "{name}" is not available in this world.
+pathfinder.biomeNotFound=Biome "{name}" was not found within {radius} blocks.
+pathfinder.biomeFound=Biome found! Marker placed on map.
+pathfinder.markerPlaced=Marker placed at coordinates: ({x}, {z})
+pathfinder.distance=Distance: {distance} blocks away
+pathfinder.markerError=Error creating marker: {error}
+pathfinder.markerCleared=Pathfinder marker(s) cleared.
+pathfinder.noMarkers=No pathfinder markers found.
+pathfinder.specificBiomeNotFound=No marker found for that biome.
+pathfinder.noBiomes=No biomes found or world generator not supported.
+pathfinder.biomeListHeader=Found {count} unique biome types:
+pathfinder.biomeListEntry=  - {biome}
+pathfinder.invalidRadius=Search radius must be between {min} and {max} blocks.
+pathfinder.noMarkersToClear=No markers to clear.
+pathfinder.clearedCount=Cleared {count} marker(s).

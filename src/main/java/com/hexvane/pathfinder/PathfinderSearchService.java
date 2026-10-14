@@ -3,31 +3,23 @@ package com.hexvane.pathfinder;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.logger.HytaleLogger;
-import com.hypixel.hytale.math.vector.Vector3d;
 import com.hypixel.hytale.protocol.packets.worldmap.MapMarker;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.modules.entity.component.TransformComponent;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.worldgen.chunk.ChunkGenerator;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
 import javax.annotation.Nonnull;
+import org.joml.Vector3d;
 
 public class PathfinderSearchService {
     private static final HytaleLogger LOGGER = HytaleLogger.forEnclosingClass();
-    private static final Message MESSAGE_BIOME_NOT_FOUND = Message.raw("Biome not found within search radius.");
-    private static final Message MESSAGE_BIOME_FOUND = Message.raw("Biome found! Marker placed on map.");
 
-    /**
-     * Performs a biome search and creates a marker if found.
-     * 
-     * @param store The entity store
-     * @param ref The player entity reference
-     * @param world The world to search in
-     * @param biomeName The biome to search for
-     * @param messageCallback Callback to send messages to the player (can be null)
-     */
     public static void searchForBiome(
             @Nonnull Store<EntityStore> store,
             @Nonnull Ref<EntityStore> ref,
@@ -35,64 +27,100 @@ public class PathfinderSearchService {
             @Nonnull String biomeName,
             @Nonnull Consumer<Message> messageCallback
     ) {
-        // Get player position
+        searchForBiome(store, ref, world, biomeName, PathfinderSearchUtil.DEFAULT_MAX_RADIUS, messageCallback);
+    }
+
+    public static void searchForBiome(
+            @Nonnull Store<EntityStore> store,
+            @Nonnull Ref<EntityStore> ref,
+            @Nonnull World world,
+            @Nonnull String biomeName,
+            int maxRadius,
+            @Nonnull Consumer<Message> messageCallback
+    ) {
         TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
         if (transform == null) {
-            messageCallback.accept(Message.raw("Unable to get player position."));
+            messageCallback.accept(Message.translation("server.pathfinder.noPosition"));
             return;
         }
 
         Vector3d position = transform.getPosition();
-        int startX = (int)position.getX();
-        int startZ = (int)position.getZ();
+        int startX = (int) position.x;
+        int startZ = (int) position.z;
 
-        // Perform search asynchronously
+        ChunkGenerator generator = PathfinderSearchUtil.asChunkGenerator(world);
+        if (generator == null) {
+            messageCallback.accept(Message.translation("server.pathfinder.noGenerator"));
+            return;
+        }
+
+        String canonicalName = PathfinderSearchUtil.canonicalBiomeName(world, biomeName);
+        if (canonicalName == null) {
+            messageCallback.accept(
+                    Message.translation("server.pathfinder.notFoundInWorld").param("name", biomeName)
+            );
+            Set<String> biomes = PathfinderSearchUtil.getAllBiomes(world);
+            if (biomes != null) {
+                PathfinderSearchUtil.sendDidYouMean(messageCallback, biomeName, biomes);
+            }
+            return;
+        }
+
+        int seed = (int) world.getWorldConfig().getSeed();
+        try {
+            String currentBiomeName = generator.getZoneBiomeResultAt(seed, startX, startZ).getBiome().getName();
+            messageCallback.accept(
+                    Message.translation("server.pathfinder.currentBiome").param("biome", currentBiomeName)
+            );
+        } catch (Exception e) {
+            LOGGER.atFine().log("Unable to read current biome: %s", e.getMessage());
+        }
+        messageCallback.accept(Message.translation("server.pathfinder.searching").param("biome", canonicalName));
+
         CompletableFuture.supplyAsync(() -> {
             try {
-                LOGGER.atInfo().log("Starting async biome search for '%s'", biomeName);
-                int[] result = PathfinderSearchUtil.searchForBiome(world, startX, startZ, biomeName);
-                LOGGER.atInfo().log("Biome search completed, result: %s", result != null ? "found" : "not found");
-                return result;
+                return PathfinderSearchUtil.searchForBiome(
+                        generator, seed, startX, startZ, canonicalName, maxRadius
+                );
             } catch (Exception e) {
                 LOGGER.atSevere().log("Error during biome search: %s", e.getMessage());
-                e.printStackTrace();
                 return null;
             }
-        }, world).thenAcceptAsync(result -> {
+        }, ForkJoinPool.commonPool()).thenAcceptAsync(result -> {
             try {
                 if (result == null) {
-                    messageCallback.accept(MESSAGE_BIOME_NOT_FOUND);
+                    messageCallback.accept(
+                            Message.translation("server.pathfinder.biomeNotFound")
+                                    .param("name", canonicalName)
+                                    .param("radius", maxRadius)
+                    );
                     return;
                 }
 
-                int targetX = result[0];
-                int targetZ = result[1];
-                double distance = Math.sqrt(Math.pow(targetX - startX, 2) + Math.pow(targetZ - startZ, 2));
-
-                // Create marker
                 Player playerComponent = store.getComponent(ref, Player.getComponentType());
                 if (playerComponent == null) {
-                    messageCallback.accept(Message.raw("Unable to get player component."));
+                    messageCallback.accept(Message.translation("server.pathfinder.noPlayer"));
                     return;
                 }
 
-                String markerId = "pathfinder_" + biomeName + "_" + System.currentTimeMillis();
-                MapMarker marker = PathfinderMarkerFactory.create(
-                        markerId,
-                        biomeName,
-                        "Coordinate.png",
-                        targetX, 128.0, targetZ
-                );
+                double distance = Math.hypot(result.x() - startX, result.z() - startZ);
+                MapMarker marker = PathfinderMarkerFactory.createForBiome(canonicalName, result.x(), result.z());
                 PathfinderMarkerStorage.addMarker(world.getName(), playerComponent, marker);
 
-                // Send confirmation
-                messageCallback.accept(MESSAGE_BIOME_FOUND);
-                messageCallback.accept(Message.raw("Marker placed at coordinates: (" + targetX + ", " + targetZ + ")"));
-                messageCallback.accept(Message.raw("Distance: " + String.format("%.1f", distance) + " blocks away"));
+                messageCallback.accept(Message.translation("server.pathfinder.biomeFound"));
+                messageCallback.accept(
+                        Message.translation("server.pathfinder.markerPlaced")
+                                .param("x", result.x())
+                                .param("z", result.z())
+                );
+                messageCallback.accept(
+                        Message.translation("server.pathfinder.distance").param("distance", String.format("%.1f", distance))
+                );
             } catch (Exception e) {
                 LOGGER.atSevere().log("Error in marker creation callback: %s", e.getMessage());
-                e.printStackTrace();
-                messageCallback.accept(Message.raw("Error creating marker: " + e.getMessage()));
+                messageCallback.accept(
+                        Message.translation("server.pathfinder.markerError").param("error", e.getMessage())
+                );
             }
         }, world);
     }
